@@ -2,17 +2,15 @@ import numpy as np
 import pandas as pd
 
 
-
-
 class Vertex:
     def __init__(self, name):
-        self.name = name
+        self.name = str(name)
 
     def __str__(self):
         return f"Vertex({self.name})"
-    
+
     def __repr__(self):
-        return self.__str__()
+        return f"Vertex({self.name})"
 
 
 class DirectedEdge:
@@ -28,127 +26,109 @@ class DirectedEdge:
 
     def __str__(self):
         return f"Edge({self.start.name} -> {self.end.name})"
-    
+
     def __repr__(self):
-        return self.__str__()
+        return f"DirectedEdge({self.start}, {self.end})"
 
 
 class Graph:
-    """
-    Initialize the graph with a list of Vertex objects and a list of Edge objects.
-
-    Parameters:
-        vertices (list): List of Vertex objects.
-        edges (list): List of Edge objects.
-    """
-
     def __init__(self):
-        self.vertex_set = set()
-        self.edge_set = set() # set of tuple (start_vertex, end_vertex)
         self.vertices = []
+        self.vertex_map = {}
         self.edges = []
-        self.vertex_map = {} # map from vertex name to Vertex object
-        self.matrix_rep = None
+        self.edge_map = {}
+        self.matrix = None
 
-    def get_vertices(self):
-        return self.vertices
-
-    def get_edges(self):
-        return self.edges
-
-    def add_vertex(self, vertex_name):
-        """
-        Add a vertex into the graph
-
-        Parameters:
-            vertex (str): A string of length 1 representing the name of node
-        """
-
+    def add_vertex(self, vertex_name: str):
+        vertex_name = str(vertex_name)
         if vertex_name not in self.vertex_map:
             vertex = Vertex(vertex_name)
-            self.vertex_set.add(vertex)
             self.vertices.append(vertex)
             self.vertex_map[vertex_name] = vertex
-        else:
-            print(f'The vertex {vertex_name} is already in the graph, aborting.')
 
-    def add_vertices(self, vertex_name_list:list):
-        """
-        Add multiple vertices into the graph.
+        self.matrix = self.make_matrix()
 
-        Parameters:
-            vertex_name_list (list:str): A list of strings for the names of nodes.
-        """
-
+    def add_vertices(self, vertex_name_list: list):
         if len(vertex_name_list) < 1:
-            print("Empty list of vertex, aborting.")
+            print("Empty list of vertex names. Aborting.")
             return
+
         for vertex_name in vertex_name_list:
-            self.add_vertex(str(vertex_name))
+            vertex_name = str(vertex_name)
+            if vertex_name in self.vertex_map:
+                print(f"Vertex '{vertex_name}' already exists in the graph. Ignoring.")
+                continue
 
-    def add_vertices_by_string(self, vertex_string:str):
-        """
-        Add vertices from a string into the graph.
+            vertex = Vertex(vertex_name)
+            self.vertices.append(vertex)
+            self.vertex_map[vertex_name] = vertex
 
-        Parameters:
-            vertex_string (str): A string from which each element will be the name of a vertex.
-        """
+        self.matrix = self.make_matrix()
 
-        for vertex_name in vertex_string:
-            self.add_vertex(vertex_name)
-
-    def add_edge(self, edge_tuple):
-        """
-        Add a directed edge into the graph.
-
-        Parameters:
-            edge_tuple (tuple): a tuple (start_vertex_name, end_vertex_name)
-        """
-
-        if len(edge_tuple) != 2:
-            print(f'{edge_tuple} is not a valid edge, ignoring.')
+    def add_vertices_by_string(self, vertex_name_string: str):
+        if len(vertex_name_string) < 1:
+            print("Empty string. Aborting.")
             return
-        
+
+        for vertex_name in vertex_name_string:
+            if vertex_name in self.vertex_map:
+                print(f"Vertex '{vertex_name}' already exists in the graph. Aborting.")
+                continue
+
+            vertex = Vertex(vertex_name)
+            self.vertices.append(vertex)
+            self.vertex_map[vertex_name] = vertex
+
+        self.matrix = self.make_matrix()
+
+    def add_edge(self, edge_tuple: tuple):
+        if len(edge_tuple) != 2:
+            print(f"{edge_tuple} is an invalid edge. Aborting.")
+            return
+
         start_name, end_name = edge_tuple
         start_name = str(start_name)
         end_name = str(end_name)
-        if start_name not in self.vertex_map or end_name not in self.vertex_map:
-            print(f"Cannot add edge {start_name} -> {end_name}: one or both vertices do not exist.")
+
+        if start_name not in self.vertex_map:
+            print(f"Vertex '{start_name}' does not exist in the graph. Aborting.")
             return
-        
-        start_vertex = self.vertex_map[start_name]
-        end_vertex = self.vertex_map[end_name]
+        if end_name not in self.vertex_map:
+            print(f"Vertex '{end_name}' does not exist in the graph. Aborting.")
+            return
 
-        if (start_vertex, end_vertex) not in self.edge_set:
-            edge = DirectedEdge(start_vertex, end_vertex)
-            self.edges.append(edge)
-            self.edge_set.add((start_vertex, end_vertex))
-        else:
-            print(f'The edge {start_name} -> {end_name} already exists, aborting.')
+        edge_name_1 = (start_name, end_name)
+        edge_name_2 = (end_name, start_name)
 
-    def add_edges(self, edge_name_list:list):
-        """
-        Add edges into the graph.
+        vertex1 = self.vertex_map[start_name]
+        vertex2 = self.vertex_map[end_name]
 
-        Parameters:
-            edge_name_list (list:tuple): a list of tuples (start_vertex_name, end_vertex_name).
-        """
+        if edge_name_1 not in self.edge_map:
+            edge1 = DirectedEdge(vertex1, vertex2)
+            self.edges.append(edge1)
+            self.edge_map[edge_name_1] = edge1
 
+        if edge_name_2 not in self.edge_map:
+            edge2 = DirectedEdge(vertex2, vertex1)
+            self.edges.append(edge2)
+            self.edge_map[edge_name_2] = edge2
+
+        self.matrix = self.make_matrix()
+
+    def add_edges(self, edge_name_list: list):
         if len(edge_name_list) < 1:
-            print("Empty list of edges, aborting.")
+            print("Empty edge list. Aborting.")
             return
 
         for edge_tuple in edge_name_list:
-            start_vertex_name, end_vertex_name = edge_tuple
-            self.add_edge((start_vertex_name, end_vertex_name))
+            self.add_edge(edge_tuple)
 
-    def matrix(self):
-        """
-        Create the adjacency matrix representation of the graph.
-        """
+    def make_matrix(self):
         size = len(self.vertices)
         adj_matrix = np.zeros((size, size), dtype=int)
-        vertex_index = {vertex.name: idx for idx, vertex in enumerate(self.vertices)} # ensure each vertex has a unique row & column
+        vertex_index = {
+            vertex.name: idx for idx, vertex in enumerate(self.vertices)
+        }  # ensure each vertex has a unique row & column
 
         # add edges to the matrix
         for edge in self.edges:
@@ -158,74 +138,162 @@ class Graph:
 
         return adj_matrix
 
-    def make_matrix(self):
-        self.matrix_rep = self.matrix()
-
     def show_matrix(self):
         # extract vertex names for lavels
         vertex_names = [vertex.name for vertex in self.vertices]
 
-        return pd.DataFrame(self.matrix_rep, index= vertex_names, columns=vertex_names)
-    
-    def path_existence(self, s, t):
-      """
-      An algoritm for detecting path existence.
-      Iterate through all edges. If an edge (u, v ) is found, such that
-      u is marked and v is not, then mark v as visited.
+        return pd.DataFrame(self.matrix, index=vertex_names, columns=vertex_names)
 
-      Parameters:
-          s (str): the name of the start vertex.
-          t (str): the name of the target vertex.
 
-      Returns:
-          bool: True if ath exists from s to t, otherwise False.
-      """
+class DirectedGraph(Graph):
+    def add_edge(self, edge_tuple):
+        if len(edge_tuple) != 2:
+            print(f"{edge_tuple} is an invalid edge. Aborting.")
+            return
 
-      s = str(s)
-      t = str(t)
-      if s not in self.vertex_map:
-          print(f"The vertex {s} does not exist, aborting.")
-          return False
-      if t not in self.vertex_map:
-          print(f"The vertex {t} does not exist, aborting.")
-          return False
-      
-      visited = set()  # track visited vertices
-      original_start_vertex = self.vertex_map[s]
-      target_vertex = self.vertex_map[t]
-      visited.add(original_start_vertex)
+        start_name, end_name = edge_tuple
+        start_name = str(start_name)
+        end_name = str(end_name)
 
-      # Step 2: repeat until no more vertices can be marked
-      marked = True
-      while marked:
-          marked = False
-          for edge in self.edges:
-              # If edge (u, v) exists, and u is visited but v is not
-              # print(f'Considering edge ({edge.start}, {edge.end})')
-              if edge.start in visited and edge.end not in visited:
-                  # print(f'{edge.start} is visited but {edge.end} is not, adding {edge.end} to visited set')
-                  visited.add(edge.end)
-                  marked = True
+        if start_name not in self.vertex_map:
+            print(f"Vertex '{start_name}' does not exist in the graph. Aborting.")
+            return
+        if end_name not in self.vertex_map:
+            print(f"Vertex '{end_name}' does not exist in the graph. Aborting.")
+            return
 
-      # Step 3: check if t is visited
-      return target_vertex in visited
+        edge_name = (start_name, end_name)
 
-    def count_weakly_connected_components(self):
+        start_vertex = self.vertex_map[start_name]
+        end_vertex = self.vertex_map[end_name]
+
+        if edge_name not in self.edge_map:
+            edge = DirectedEdge(start_vertex, end_vertex)
+            self.edges.append(edge)
+            self.edge_map[edge_name] = edge
+
+        self.matrix = self.make_matrix()
+
+    def get_vertices(self):
+        return self.vertices
+
+    def get_edges(self):
+        return self.edges
+
+    def path_existence(self, start, target):
         """
-        Count the number of weakly connected components from the matrix representation of the graph
+        An algoritm for detecting path existence.
+        Iterate through all edges. If an edge (u, v ) is found, such that
+        u is marked and v is not, then mark v as visited.
 
-        Def: Weakly connected components are subgraphs having a connection b/w very 2 nodes no matter the direction of the edges.
-        In other words: A directed graph is weakly connected if the underlying undirected graph is connected
+        Parameters:
+            s (str): the name of the start vertex.
+            t (str): the name of the target vertex.
+
+        Returns:
+            bool: True if ath exists from s to t, otherwise False.
         """
-        pass
 
-    def count_strongly_connected_components(self):
+        start = str(start)
+        target = str(target)
+        if start not in self.vertex_map:
+            print(f"The vertex {start} does not exist, aborting.")
+            return False
+        if target not in self.vertex_map:
+            print(f"The vertex {target} does not exist, aborting.")
+            return False
+
+        visited = set()  # track visited vertices
+        original_start_vertex = self.vertex_map[start]
+        target_vertex = self.vertex_map[target]
+        visited.add(original_start_vertex)
+
+        # Step 2: repeat until no more vertices can be marked
+        marked = True
+        while marked:
+            marked = False
+            for edge in self.edges:
+                # If edge (u, v) exists, and u is visited but v is not
+                # print(f'Considering edge ({edge.start}, {edge.end})')
+                if edge.start in visited and edge.end not in visited:
+                    # print(f'{edge.start} is visited but {edge.end} is not, adding {edge.end} to visited set')
+                    visited.add(edge.end)
+                    marked = True
+
+        # Step 3: check if t is visited
+        return target_vertex in visited
+
+    def degree(self, vertex_name):
         """
-        Count the number of strongly connected components from the matrix representation of the graph
+        Calculate the degree of a given vertex.
 
-        Def: Strongly connected components are subgraphs having a connection b/w every 2 nodes considering the direction of the edges.
+        Parameters:
+            vertex_name (str): The name of the vertex whose degree is being calculated.
+
+        Return:
+            int: The degree of the vertex.
+            None: If the vertex does not exist in the graph.
         """
-        pass
 
-    def __str__(self):
-        return f"Graph(V, E): V = {self.vertices}, E = {self.edges}"
+        vertex_name = str(vertex_name)
+        if vertex_name not in self.vertex_map:
+            print(f"The vertex {vertex_name} does not exist in the graph, aborting.")
+            return None
+        else:
+            degree = 0
+            for edge_name in self.edge_map.keys():
+                start_name, end_name = edge_name
+                if vertex_name == start_name or vertex_name == end_name:
+                    degree += 1
+
+            return degree
+
+    def idegree(self, vertex_name):
+        """
+        Calculate the in-degree of a given vertex.
+
+        Parameters:
+            vertex_name (str): The name of the vertex whose in-degree is being calculated.
+
+        Return:
+            int: The in-degree of the vertex.
+            None: If the vertex does not exist in the graph.
+        """
+
+        vertex_name = str(vertex_name)
+        if vertex_name not in self.vertex_map:
+            print(f"The vertex {vertex_name} does not exist in the graph, aborting.")
+            return None
+        else:
+            degree = 0
+            for edge_name in self.edge_map.keys():
+                start_name, end_name = edge_name
+                if vertex_name == end_name:
+                    degree += 1
+
+            return degree
+
+    def odegree(self, vertex_name):
+        """
+        Calculate the out-degree of a given vertex.
+
+        Parameters:
+            vertex_name (str): The name of the vertex whose out-degree is being calculated.
+
+        Return:
+            int: The out-degree of the vertex.
+            None: If the vertex does not exist in the graph.
+        """
+
+        vertex_name = str(vertex_name)
+        if vertex_name not in self.vertex_map:
+            print(f"The vertex {vertex_name} does not exist in the graph, aborting.")
+            return None
+        else:
+            degree = 0
+            for edge_name in self.edge_map.keys():
+                start_name, end_name = edge_name
+                if vertex_name == start_name:
+                    degree += 1
+
+            return degree
