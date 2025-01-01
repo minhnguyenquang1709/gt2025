@@ -1,6 +1,13 @@
 import numpy as np
 import pandas as pd
 
+"""
+Breadth First Search
+
+Depth First Search
+
+"""
+
 
 class Vertex:
     def __init__(self, name):
