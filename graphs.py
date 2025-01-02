@@ -44,7 +44,7 @@ class Graph:
         self.vertex_map = {}
         self.edges = []
         self.edge_map = {}
-        self.matrix = None
+        self.undirected_matrix = None
 
     def add_vertex(self, vertex_name: str):
         vertex_name = str(vertex_name)
@@ -53,7 +53,7 @@ class Graph:
             self.vertices.append(vertex)
             self.vertex_map[vertex_name] = vertex
 
-        self.matrix = self.make_matrix()
+        self.undirected_matrix = self.make_undirected_matrix()
 
     def add_vertices(self, vertex_name_list: list):
         if len(vertex_name_list) < 1:
@@ -66,11 +66,7 @@ class Graph:
                 print(f"Vertex '{vertex_name}' already exists in the graph. Ignoring.")
                 continue
 
-            vertex = Vertex(vertex_name)
-            self.vertices.append(vertex)
-            self.vertex_map[vertex_name] = vertex
-
-        self.matrix = self.make_matrix()
+            self.add_vertex(vertex_name)
 
     def add_vertices_by_string(self, vertex_name_string: str):
         if len(vertex_name_string) < 1:
@@ -82,11 +78,7 @@ class Graph:
                 print(f"Vertex '{vertex_name}' already exists in the graph. Aborting.")
                 continue
 
-            vertex = Vertex(vertex_name)
-            self.vertices.append(vertex)
-            self.vertex_map[vertex_name] = vertex
-
-        self.matrix = self.make_matrix()
+            self.add_vertex(vertex_name)
 
     def add_edge(self, edge_tuple: tuple):
         if len(edge_tuple) != 2:
@@ -120,7 +112,7 @@ class Graph:
             self.edges.append(edge2)
             self.edge_map[edge_name_2] = edge2
 
-        self.matrix = self.make_matrix()
+        self.undirected_matrix = self.make_undirected_matrix()
 
     def add_edges(self, edge_name_list: list):
         if len(edge_name_list) < 1:
@@ -130,7 +122,7 @@ class Graph:
         for edge_tuple in edge_name_list:
             self.add_edge(edge_tuple)
 
-    def make_matrix(self):
+    def make_undirected_matrix(self):
         size = len(self.vertices)
         adj_matrix = np.zeros((size, size), dtype=int)
         vertex_index = {
@@ -143,44 +135,16 @@ class Graph:
             end_idx = vertex_index[edge.end.name]
             adj_matrix[start_idx][end_idx] = 1
 
-        return adj_matrix
+        self.undirected_matrix = adj_matrix
 
-    def show_matrix(self):
+    def show_undirected_matrix(self):
         # extract vertex names for lavels
         vertex_names = [vertex.name for vertex in self.vertices]
 
-        return pd.DataFrame(self.matrix, index=vertex_names, columns=vertex_names)
-
-
-class DirectedGraph(Graph):
-    def add_edge(self, edge_tuple):
-        if len(edge_tuple) != 2:
-            print(f"{edge_tuple} is an invalid edge. Aborting.")
-            return
-
-        start_name, end_name = edge_tuple
-        start_name = str(start_name)
-        end_name = str(end_name)
-
-        if start_name not in self.vertex_map:
-            print(f"Vertex '{start_name}' does not exist in the graph. Aborting.")
-            return
-        if end_name not in self.vertex_map:
-            print(f"Vertex '{end_name}' does not exist in the graph. Aborting.")
-            return
-
-        edge_name = (start_name, end_name)
-
-        start_vertex = self.vertex_map[start_name]
-        end_vertex = self.vertex_map[end_name]
-
-        if edge_name not in self.edge_map:
-            edge = DirectedEdge(start_vertex, end_vertex)
-            self.edges.append(edge)
-            self.edge_map[edge_name] = edge
-
-        self.matrix = self.make_matrix()
-
+        return pd.DataFrame(
+            self.undirected_matrix, index=vertex_names, columns=vertex_names
+        )
+    
     def get_vertices(self):
         return self.vertices
 
@@ -255,6 +219,53 @@ class DirectedGraph(Graph):
 
             return degree
 
+
+class DirectedGraph(Graph):
+    def __init__(self):
+        super().__init__()
+        # self.directed_graph = None
+        self.directed_matrix = None
+
+    def add_directed_edge(self, edge_tuple):
+        if len(edge_tuple) != 2:
+            print(f"{edge_tuple} is an invalid edge. Aborting.")
+            return
+
+        start_name, end_name = edge_tuple
+        start_name = str(start_name)
+        end_name = str(end_name)
+
+        if start_name not in self.vertex_map:
+            print(f"Vertex '{start_name}' does not exist in the graph. Aborting.")
+            return
+        if end_name not in self.vertex_map:
+            print(f"Vertex '{end_name}' does not exist in the graph. Aborting.")
+            return
+
+        edge_name = (start_name, end_name)
+
+        start_vertex = self.vertex_map[start_name]
+        end_vertex = self.vertex_map[end_name]
+
+        if edge_name not in self.edge_map:
+            edge = DirectedEdge(start_vertex, end_vertex)
+            self.edges.append(edge)
+            self.edge_map[edge_name] = edge
+
+        self.make_undirected_matrix()
+        # self.make_undirected_graph()
+        self.make_directed_matrix()
+
+    def add_directed_edges(self, edge_name_list: list):
+        if len(edge_name_list) < 1:
+            print("Empty edge list. Aborting.")
+            return
+
+        for edge_tuple in edge_name_list:
+            self.add_directed_edge(edge_tuple)
+
+    
+
     def idegree(self, vertex_name):
         """
         Calculate the in-degree of a given vertex.
@@ -304,3 +315,55 @@ class DirectedGraph(Graph):
                     degree += 1
 
             return degree
+
+    def make_undirected_graph(self):
+        graph = Graph()
+        graph.vertices = self.vertices.copy()
+        graph.vertex_map = self.vertex_map.copy()
+        graph.edges = self.edges.copy()
+        graph.edge_map = self.edge_map.copy()
+
+        for start_name, end_name in self.edge_map.keys():
+            if (end_name, start_name) not in graph.edge_map:
+                graph.add_edge((end_name, start_name))
+
+        self.directed_graph = graph
+
+    def make_undirected_matrix(self):
+        size = len(self.vertices)
+        adj_matrix = np.zeros((size, size), dtype=int)
+        vertex_index = {
+            vertex.name: idx for idx, vertex in enumerate(self.vertices)
+        }  # ensure each vertex has a unique row & column
+
+        # add edges to the matrix
+        for edge in self.edges:
+            start_idx = vertex_index[edge.start.name]
+            end_idx = vertex_index[edge.end.name]
+            adj_matrix[start_idx][end_idx] = 1
+            adj_matrix[end_idx][start_idx] = 1
+
+        self.undirected_matrix = adj_matrix
+
+    def make_directed_matrix(self):
+        size = len(self.vertices)
+        adj_matrix = np.zeros((size, size), dtype=int)
+        vertex_index = {
+            vertex.name: idx for idx, vertex in enumerate(self.vertices)
+        }  # ensure each vertex has a unique row & column
+
+        # add edges to the matrix
+        for edge in self.edges:
+            start_idx = vertex_index[edge.start.name]
+            end_idx = vertex_index[edge.end.name]
+            adj_matrix[start_idx][end_idx] = 1
+
+        self.directed_matrix = adj_matrix
+
+    def show_directed_matrix(self):
+        # extract vertex names for lavels
+        vertex_names = [vertex.name for vertex in self.vertices]
+
+        return pd.DataFrame(
+            self.directed_matrix, index=vertex_names, columns=vertex_names
+        )
