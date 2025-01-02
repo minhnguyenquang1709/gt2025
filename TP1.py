@@ -25,14 +25,11 @@ if __name__ == "__main__":
         (8, 9),
     ]
 
-    g.add_edges(edge_names)
-
-    g.add_edge((1, 4))
+    g.add_directed_edges(edge_names)
 
     print("Vertices: ", g.get_vertices())
     print("Edges: ", g.get_edges())
-    g.make_matrix()
-    print(f"The matrix representation of the graph is:\n{g.show_matrix()}")
+    print(f"The matrix representation of the graph is:\n{g.show_directed_matrix()}")
 
     print(f"Path existence (1, 3): {g.path_existence(1, 3)}")
 
