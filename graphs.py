@@ -6,6 +6,8 @@ Breadth First Search
 
 Depth First Search
 
+Component: maximal connected subgraph
+
 """
 
 
@@ -45,6 +47,7 @@ class Graph:
         self.edges = []
         self.edge_map = {}
         self.undirected_matrix = None
+        self.components = []
 
     def add_vertex(self, vertex_name: str):
         vertex_name = str(vertex_name)
@@ -144,7 +147,7 @@ class Graph:
         return pd.DataFrame(
             self.undirected_matrix, index=vertex_names, columns=vertex_names
         )
-    
+
     def get_vertices(self):
         return self.vertices
 
@@ -219,6 +222,65 @@ class Graph:
 
             return degree
 
+    def bfs(self, start_name):
+        start_name = str(start_name)
+        if start_name not in self.vertex_map:
+            print(f"Vertex {start_name} does not exist. Aborting.")
+            return None
+
+        vertex_index = {vertex.name: idx for idx, vertex in enumerate(self.vertices)}
+        start_vertex = self.vertex_map[start_name]
+        visited = [False] * len(self.vertices)
+        q = [start_vertex]
+        result = []
+
+        while q:
+            visited_vertex = q[0]
+            result.append(visited_vertex.name)
+            q.pop(0)
+
+            # for every adjacent vertex to the current
+            for i in range(len(self.vertices)):
+                if (
+                    self.undirected_matrix[vertex_index[visited_vertex.name], i] == 1
+                ) and (not visited[i]):
+                    q.append(self.vertices[i])
+                    visited[i] = True
+
+        return result
+
+    def dfs(self, start_name, visited=None, result=None):
+        if visited is None:
+            visited = [False] * len(self.vertices)
+        if result is None:
+            result = []
+
+        start_name = str(start_name)
+        if start_name not in self.vertex_map:
+            print(f"Vertex {start_name} does not exist. Aborting.")
+            return None
+
+        vertex_index = {vertex.name: idx for idx, vertex in enumerate(self.vertices)}
+        start_idx = vertex_index[start_name]
+
+        # mark the current vertex as visited
+        result.append(start_name)
+        visited[start_idx] = True
+
+        size = len(self.vertices)
+        for i in range(size):
+            if (self.undirected_matrix[start_idx][i] == 1) and (not visited[i]):
+                self.dfs(self.vertices[i].name, visited, result)
+
+        return result
+    
+    def find_components(self):
+        components = []
+
+        
+
+        return components
+
 
 class DirectedGraph(Graph):
     def __init__(self):
@@ -263,8 +325,6 @@ class DirectedGraph(Graph):
 
         for edge_tuple in edge_name_list:
             self.add_directed_edge(edge_tuple)
-
-    
 
     def idegree(self, vertex_name):
         """
@@ -367,3 +427,81 @@ class DirectedGraph(Graph):
         return pd.DataFrame(
             self.directed_matrix, index=vertex_names, columns=vertex_names
         )
+
+    def bfs_directed(self, start_name):
+        start_name = str(start_name)
+        if start_name not in self.vertex_map:
+            print(f"Vertex {start_name} does not exist. Aborting.")
+            return None
+
+        vertex_index = {vertex.name: idx for idx, vertex in enumerate(self.vertices)}
+        start_vertex = self.vertex_map[start_name]
+        visited = [False] * len(self.vertices)
+        q = [start_vertex]
+        result = []
+
+        while q:
+            visited_vertex = q[0]
+            result.append(visited_vertex.name)
+            q.pop(0)
+
+            # for every adjacent vertex to the current
+            for i in range(len(self.vertices)):
+                if (
+                    self.directed_matrix[vertex_index[visited_vertex.name], i] == 1
+                ) and (not visited[i]):
+                    q.append(self.vertices[i])
+                    visited[i] = True
+
+        return result
+
+    def dfs_directed(self, start_name, visited=None, result=None):
+        if visited is None:
+            visited = [False] * len(self.vertices)
+        if result is None:
+            result = []
+
+        start_name = str(start_name)
+        if start_name not in self.vertex_map:
+            print(f"Vertex {start_name} does not exist. Aborting.")
+            return None
+
+        vertex_index = {vertex.name: idx for idx, vertex in enumerate(self.vertices)}
+        start_idx = vertex_index[start_name]
+
+        # mark the current vertex as visited
+        if not visited[start_idx]:
+            result.append(start_name)
+            visited[start_idx] = True
+
+        size = len(self.vertices)
+        for i in range(size):
+            if (self.directed_matrix[start_idx][i] == 1):
+                self.dfs_directed(self.vertices[i].name, visited, result)
+
+        return result
+
+    def find_wcc(self):
+        return
+        visited = [False] * len(self.vertices)
+        wcc_vertex_lists = []
+        for i in range(len(self.vertices)):
+            if not visited[i]:
+                component_vertex_names = self.dfs(self.vertices[i].name, visited)
+                wcc_vertex_lists.append(component_vertex_names)
+
+        # return wcc_vertex_list
+        for vertex_name_list in wcc_vertex_lists:
+            component = DirectedGraph()
+            component_vertex_map = {}
+            component_edge_map = {}
+            for vertex_name in vertex_name_list:
+                component_vertex_map[vertex_name] = self.vertex_map[vertex_name]
+                component_edge_map.update({(start_name, end_name): edge for (start_name, end_name), edge in self.edge_map.items() if vertex_name == start_name or vertex_name == end_name})
+
+            
+                
+
+
+    def find_scc(self):
+        pass
