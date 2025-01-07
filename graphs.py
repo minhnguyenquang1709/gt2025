@@ -39,7 +39,7 @@ class Graph:
         self.vertex_map: Dict[str, Vertex] = {}
         self.edge_map: Dict[Tuple[str, str], DirectedEdge] = {}
         self.undirected_matrix: np.ndarray = None
-        self.components: List[Graph] = []
+        self.components: List[Graph|DirectedGraph] = []
 
     def add_vertex(self, vertex_name: str):
         vertex_name = str(vertex_name)
@@ -529,8 +529,8 @@ class DirectedGraph(Graph):
             print(f"Vertex {start_name} does not exist. Aborting.")
             return None
 
-        vertex_index = {vertex.name: idx for idx, vertex in enumerate(self.vertices)}
-        start_idx = vertex_index[start_name]
+        vertex_indices = {vertex.name: idx for idx, vertex in enumerate(self.vertices)}
+        start_idx = vertex_indices[start_name]
 
         # mark the current vertex as visited
         if not visited[start_idx]:
@@ -555,74 +555,67 @@ class DirectedGraph(Graph):
         component.make_directed_matrix()
         
         return component
-
-    def find_scc(self):
-        UNVISITED = -1
-        n = len(self.vertices)
-        m = self.directed_matrix
-
-        # Tracking arrays
-        ids = [UNVISITED] * n  # Node ids
-        low = [0] * n  # Low-link values
-        on_stack = [False] * n  # Track nodes currently in the stack
-        g_seenstack = []  # Global stack for Tarjan's algorithm
-        sccs = []  # List of SCCs
+    
+    def find_scc_from_matrix(self):
+        matrix = self.directed_matrix
+        n = len(matrix)
         vertex_indices = {vertex.name: idx for idx, vertex in enumerate(self.vertices)}
 
-        # Helper to generate incremental ids
-        def next_id():
-            current_id = len([i for i in ids if i != UNVISITED])
-            return current_id
+        # find complete order
+        def dfs_order(graph):
+            visited = [False] * n
+            order = []
+            
+            def dfs(vertex_name):
+                # print(f"name: {vertex_name}")
+                idx = vertex_indices[vertex_name]
+                visited[idx] = True
+                for w in range(n):
+                    if graph[idx][w] == 1 and not visited[w]:
+                        dfs(self.vertices[w].name)
+                order.append(vertex_name)
+            
+            for v in range(n):
+                if not visited[v]:
+                    dfs(self.vertices[v].name)
+            return order[::-1]
+        
+        # create transpose matrix
+        def transpose_matrix(m:np.ndarray):
+            return np.transpose(m.copy())
+        
+        # find
+        def find_scc(graph, order):
+            visited = [False] * n
+            sccs = []
+            
+            def dfs(v, current_scc):
+                visited[v] = True
+                current_scc.append(self.vertices[v].name)
+                for w in range(n):
+                    if graph[v][w] == 1 and not visited[w]:
+                        dfs(w, current_scc)
+            
+            for vertex_name in order:
+                idx = vertex_indices[vertex_name]
+                if not visited[idx]:
+                    current_scc = []
+                    dfs(idx, current_scc)
+                    if current_scc:
+                        sccs.append(current_scc)
+            
+            return sccs
+        
+        # Kosaraju's algo
+        first_order = dfs_order(matrix)
+        # print(f"First order: {first_order}")
+        
+        transposed = transpose_matrix(matrix)
+        
+        sccs = find_scc(transposed, first_order)
 
-        def dfs_scc(vertex_name):
-            nonlocal ids, low, on_stack, g_seenstack, sccs
-            vertex_idx = vertex_indices[vertex_name]
-            ids[vertex_idx] = low[vertex_idx] = Helper.getNumber()
-            g_seenstack.append(vertex_idx)
-            on_stack[vertex_idx] = True
-            print(f"Visiting {vertex_name}, id={ids[vertex_idx]}, lowlink={low[vertex_idx]}")
-            # Visit neighbors
-            for neighbor_idx in range(n):
-                if m[vertex_idx][neighbor_idx] == 1:  # There is an edge
-                    if ids[neighbor_idx] == UNVISITED:  # Neighbor not visited
-                        dfs_scc(self.vertices[neighbor_idx].name)
-                        # Update low-link value after callback
-                        low[vertex_idx] = min(low[vertex_idx], low[neighbor_idx])
-                        print(f"Backtrack from {self.vertices[neighbor_idx].name} to {vertex_name}")
-                        
-                        print(f"Current vertex {vertex_name}: lowlink = {low[vertex_idx]}")
-                        print(f"Neighbour vertex {self.vertices[neighbor_idx].name}: lowlink = {low[neighbor_idx]}")
-                        print("Update lowlink")
-                        print(f"Current low: {low[vertex_idx]} - Neighbour low: {low[neighbor_idx]}")
-                        print()
-                    elif on_stack[neighbor_idx]:  # Back edge to an ancestor
-                        low[vertex_idx] = min(low[vertex_idx], ids[neighbor_idx])
-                        print(f"{self.vertices[neighbor_idx].name} is visited, returning.")
-                        print(f"Update lowlink")
-                        print(f"Current vertex {vertex_name}: lowlink = {low[vertex_idx]}")
-                        print(f"Neighbour vertex {self.vertices[neighbor_idx].name}: lowlink = {low[neighbor_idx]}")
-                        print()
-            # After visiting all neighbors, check if root of an SCC
-            if ids[vertex_idx] == low[vertex_idx]:
-                # Start a new SCC
-                current_scc = []
-                while g_seenstack:
-                    node = g_seenstack.pop()
-                    on_stack[node] = False
-                    current_scc.append(self.vertices[node].name)
-                    if node == vertex_idx:  # Stop when root is reached
-                        break
-                print(f"Current SCC: {current_scc}")
-                sccs.append(current_scc)
-
-        # Perform DFS for each unvisited node
-        for vertex in self.vertices:
-            if ids[vertex_indices[vertex.name]] == UNVISITED:
-                dfs_scc(vertex.name)
-                Helper.resetNumber()
         self.scc = sccs
         return sccs
-
 
 class Helper:
     nb = 0
