@@ -305,7 +305,7 @@ class Graph:
                 continue
             visited_vertex_name = self.vertices[i].name
             results = self.dfs(visited_vertex_name, visited)
-            print(f"Results: {results}")
+            # print(f"Results: {results}")
 
             component_vertices = []
             component_vertex_map = {}
@@ -506,6 +506,19 @@ class DirectedGraph(Graph):
         return result
 
     def dfs_directed(self, start_name, visited=None, result=None):
+        """
+        Depth First Search implementation
+
+        Parameters:
+            start_name (str): name of the starting node.
+
+            visited (list<bool>): the array to keep track of visited nodes.
+
+            result (list<str>): the array containing DFS results.
+
+        Return:
+            An array containing vertex names in DFS order.
+        """
         if visited is None:
             visited = [False] * len(self.vertices)
         if result is None:
@@ -521,7 +534,7 @@ class DirectedGraph(Graph):
 
         # mark the current vertex as visited
         if not visited[start_idx]:
-            result.append(self.vertex_map[start_name])
+            result.append(self.vertex_map[start_name].name)
             visited[start_idx] = True
 
         size = len(self.vertices)
@@ -537,7 +550,7 @@ class DirectedGraph(Graph):
         component.vertex_map = vertex_map
         component.edges = edges
         component.edge_map = edge_map
-        print(f"Component vertex map: {component.vertex_map}")
+        # print(f"Component vertex map: {component.vertex_map}")
         component.make_undirected_matrix()
         component.make_directed_matrix()
         
@@ -548,13 +561,75 @@ class DirectedGraph(Graph):
         n = len(self.vertices)
         m = self.directed_matrix
 
-        ids = [0] * n
-        low = [0] * n
-        on_stack = [False] * n
-        stack = []
+        # Tracking arrays
+        ids = [UNVISITED] * n  # Node ids
+        low = [0] * n  # Low-link values
+        on_stack = [False] * n  # Track nodes currently in the stack
+        g_seenstack = []  # Global stack for Tarjan's algorithm
+        sccs = []  # List of SCCs
+        vertex_indices = {vertex.name: idx for idx, vertex in enumerate(self.vertices)}
 
-        for i in ids: i = UNVISITED
+        # Helper to generate incremental ids
+        def next_id():
+            current_id = len([i for i in ids if i != UNVISITED])
+            return current_id
 
-        for i, id in ids:
-            if(id == UNVISITED):
-                self.dfs(self.vertices[i])
+        def dfs_scc(vertex_name):
+            nonlocal ids, low, on_stack, g_seenstack, sccs
+            vertex_idx = vertex_indices[vertex_name]
+            ids[vertex_idx] = low[vertex_idx] = Helper.getNumber()
+            g_seenstack.append(vertex_idx)
+            on_stack[vertex_idx] = True
+            print(f"Visiting {vertex_name}, id={ids[vertex_idx]}, lowlink={low[vertex_idx]}")
+            # Visit neighbors
+            for neighbor_idx in range(n):
+                if m[vertex_idx][neighbor_idx] == 1:  # There is an edge
+                    if ids[neighbor_idx] == UNVISITED:  # Neighbor not visited
+                        dfs_scc(self.vertices[neighbor_idx].name)
+                        # Update low-link value after callback
+                        low[vertex_idx] = min(low[vertex_idx], low[neighbor_idx])
+                        print(f"Backtrack from {self.vertices[neighbor_idx].name} to {vertex_name}")
+                        
+                        print(f"Current vertex {vertex_name}: lowlink = {low[vertex_idx]}")
+                        print(f"Neighbour vertex {self.vertices[neighbor_idx].name}: lowlink = {low[neighbor_idx]}")
+                        print("Update lowlink")
+                        print(f"Current low: {low[vertex_idx]} - Neighbour low: {low[neighbor_idx]}")
+                        print()
+                    elif on_stack[neighbor_idx]:  # Back edge to an ancestor
+                        low[vertex_idx] = min(low[vertex_idx], ids[neighbor_idx])
+                        print(f"{self.vertices[neighbor_idx].name} is visited, returning.")
+                        print(f"Update lowlink")
+                        print(f"Current vertex {vertex_name}: lowlink = {low[vertex_idx]}")
+                        print(f"Neighbour vertex {self.vertices[neighbor_idx].name}: lowlink = {low[neighbor_idx]}")
+                        print()
+            # After visiting all neighbors, check if root of an SCC
+            if ids[vertex_idx] == low[vertex_idx]:
+                # Start a new SCC
+                current_scc = []
+                while g_seenstack:
+                    node = g_seenstack.pop()
+                    on_stack[node] = False
+                    current_scc.append(self.vertices[node].name)
+                    if node == vertex_idx:  # Stop when root is reached
+                        break
+                print(f"Current SCC: {current_scc}")
+                sccs.append(current_scc)
+
+        # Perform DFS for each unvisited node
+        for vertex in self.vertices:
+            if ids[vertex_indices[vertex.name]] == UNVISITED:
+                dfs_scc(vertex.name)
+                Helper.resetNumber()
+        self.scc = sccs
+        return sccs
+
+
+class Helper:
+    nb = 0
+
+    def getNumber():
+        Helper.nb += 1
+        return Helper.nb - 1
+    
+    def resetNumber():
+        Helper.nb = 0
