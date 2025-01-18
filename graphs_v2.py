@@ -100,3 +100,27 @@ class Graph:
 
     def update(self):
         pass
+
+
+class DGraph(Graph):
+    pass
+
+
+class DTree(DGraph):
+    pass
+
+
+class DWTree(DTree):
+    pass
+
+
+class Tree(Graph):
+    pass
+
+
+class WGraph(Graph):
+    pass
+
+
+class WTree(Graph):
+    pass
