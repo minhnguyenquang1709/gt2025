@@ -3,7 +3,7 @@ from graphs import *
 if __name__ == "__main__":
     vertex_names = "123456789"
 
-    g = DirectedGraph()
+    g = DGraph()
 
     g.add_vertices_by_string(vertex_names)
 
@@ -27,9 +27,7 @@ if __name__ == "__main__":
 
     g.add_directed_edges(edge_names)
 
-    print("Vertices: ", g.get_vertices())
-    print("Edges: ", g.get_edges())
-    print(f"The matrix representation of the graph is:\n{g.show_directed_matrix()}")
+    print(f"The matrix representation of the graph is:\n{g.show_dmatrix()}")
 
     print(f"Path existence (1, 3): {g.path_existence(1, 3)}")
 
@@ -39,11 +37,11 @@ if __name__ == "__main__":
 
     print(f"Path existence (1, 1): {g.path_existence(1, 1)}")
 
-    print(f"Path existence (5, 5): {g.path_existence(5, 5)}")
+    print(f"Path existence (5, 5): {g.path_existence(5, '5')}")
 
     print(f"Path existence (10, 3): {g.path_existence(10, 3)}")
 
-    print(f"Path existence (7, 9): {g.path_existence(7, 9)}")
+    print(f"Path existence (7, 9): {g.path_existence('7', 9)}")
 
     print(f"Path existence (4, 7): {g.path_existence(4, 7)}")
 
