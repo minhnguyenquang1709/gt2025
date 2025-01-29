@@ -461,7 +461,74 @@ class Graph:
 
         return mst
 
+    # def adjacency_matrix(self) -> np.ndarray:
+    #     """Returns the weighted adjacency matrix of the graph."""
+    #     n = len(self._vertices)
+    #     matrix = np.full((n, n), np.inf)
+    #     np.fill_diagonal(matrix, 0)  # Distance to self is zero
+        
+    #     for (start, end), weight in self._weight_map.items():
+    #         if start in self._vertex_indices and end in self._vertex_indices:
+    #             i = self._vertex_indices[start]
+    #             j = self._vertex_indices[end]
+    #             matrix[i][j] = weight
+    #     return matrix
 
+    def dijkstra(self, source: str, target: str) -> tuple[list[str], float]:
+        """
+        Implements Dijkstra's algorithm to find the shortest path from source to target.
+
+        Return:
+            The path as a list of vertex names and the total weight.
+        """
+        if source not in self._vertex_map or target not in self._vertex_map:
+            raise ValueError("Source or target vertex not found in the graph.")
+        
+        import heapq
+        
+        vertices = {v.name: v for v in self._vertices}
+        dist = {name: float('infinity') for name in vertices}
+        prev = {name: None for name in vertices}
+        dist[source] = 0
+        
+        heap = []
+        heapq.heappush(heap, (0, source))
+        
+        visited = set()
+        
+        while heap:
+            current_dist, u = heapq.heappop(heap)
+            
+            if u in visited:
+                continue
+            visited.add(u)
+            
+            if u == target:
+                break
+            
+            # Explore neighbors
+            for edge in self._edges:
+                if edge.start.name == u:
+                    v = edge.end.name
+                    weight = self._weight_map.get((u, v), None)
+                    if weight is None:
+                        continue  # Skip if no weight is defined
+                    
+                    if dist[v] > current_dist + weight:
+                        new_dist = current_dist + weight
+                        dist[v] = new_dist
+                        prev[v] = u
+                        heapq.heappush(heap, (new_dist, v))
+        
+        # Reconstruct path
+        path = []
+        current = target
+        if prev[current] is None and current != source:
+            return [], float('infinity')  # No path exists
+        while current is not None:
+            path.insert(0, current)
+            current = prev.get(current)
+        return path, dist[target]
 
 
 class DGraph(Graph):
